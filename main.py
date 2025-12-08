@@ -14,7 +14,7 @@ import json
     "astrbot_plugin_llm_poke",
     "和泉智宏",
     "调用LLM的戳一戳回复插件",
-    "1.3",
+    "1.4", 
     "https://github.com/0d00-Ciallo-0721/astrbot_plugin_llm_poke",
 )
 class LLMPokePlugin(Star):
@@ -29,6 +29,13 @@ class LLMPokePlugin(Star):
         self.trigger_probability = config.get("trigger_probability", 1.0)  
         self.enabled_groups = config.get("enabled_groups", [])
         self.poke_interval = config.get("poke_interval", 1.0)
+
+        # --- v1.4 Update: 加载新配置 ---
+        self.enable_in_groups = config.get("enable_in_groups", True)
+        self.enable_in_private = config.get("enable_in_private", True)
+        # 确保黑名单id转为字符串，方便比对
+        self.blacklisted_users = [str(uid) for uid in config.get("blacklisted_users", [])]
+        # -----------------------------
         
         # 概率配置
         self.normal_reply_probability = config.get("normal_reply_probability", 0.3)
@@ -67,7 +74,7 @@ class LLMPokePlugin(Star):
             "B": config.get("poke_back_prompt_B", "你要反击戳回对方，请表达出你的小得意。"),
         }
         
-        logger.info("LLM戳一戳插件已初始化完成！")
+        logger.info("LLM戳一戳插件(v1.4)已初始化完成！")
 
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_poke(self, event: AstrMessageEvent):
@@ -92,16 +99,35 @@ class LLMPokePlugin(Star):
         sender_id = raw_message.get('user_id')
         target_id = raw_message.get('target_id')
         group_id = raw_message.get('group_id')
-        
-        # 检查群组是否在启用列表中
-        if group_id and str(group_id) not in [str(g) for g in self.enabled_groups]:
+
+        # --- v1.4 Update: 黑名单检查 ---
+        if str(sender_id) in self.blacklisted_users:
+            logger.info(f"用户 {sender_id} 在黑名单中，忽略戳一戳。")
             return
+        # -----------------------------
+
+        # --- v1.4 Update: 作用域开关检查 ---
+        if group_id:
+            # 是群聊消息
+            if not self.enable_in_groups:
+                # logger.debug("群聊戳一戳已禁用") 
+                return
+            
+            # 原有的群白名单逻辑
+            if self.enabled_groups and str(group_id) not in [str(g) for g in self.enabled_groups]:
+                return
+        else:
+            # 是私聊消息
+            if not self.enable_in_private:
+                # logger.debug("私聊戳一戳已禁用")
+                return
+        # -----------------------------
             
         # 检查是否是用户戳机器人
         if not bot_id or not sender_id or not target_id or str(target_id) != str(bot_id):
             return
 
-        # <-- 新增：根据总概率决定是否响应 -->
+        # 根据总概率决定是否响应
         if random.random() > self.trigger_probability:
             logger.info(f"戳一戳事件未达到触发概率({self.trigger_probability})，本次不响应。")
             return  # 未达到概率，不执行任何操作
