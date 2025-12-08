@@ -5,6 +5,12 @@
     "hint": "设置一个0到1之间的数值，决定机器人被戳后有多大的概率会做出回应。1为100%回应。",
     "default": 1.0
   },
+  "enable_in_groups": {
+    "description": "在群聊中启用",
+    "type": "bool",
+    "hint": "开启后，机器人将响应群聊中的戳一戳",
+    "default": true
+  },
   "enabled_groups": {
     "description": "启用群聊列表",
     "type": "list",
@@ -12,6 +18,21 @@
     "items": {
       "type": "string"
     }
+  },
+  "enable_in_private": {
+    "description": "在私聊中启用",
+    "type": "bool",
+    "hint": "开启后，机器人将响应私聊中的戳一戳",
+    "default": true
+  },
+  "blacklisted_users": {
+    "description": "用户黑名单",
+    "type": "list",
+    "hint": "填入用户ID(QQ号)，这些用户戳机器人将不会有任何反应",
+    "items": {
+      "type": "string"
+    },
+    "default": []
   },
   "response_interval": {
     "description": "戳一戳响应间隔时间",
