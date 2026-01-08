@@ -91,8 +91,8 @@
     ]
   },
   "poke_history": {
-    "hint": "上下文中的戳一戳占位符",
-    "description": "自定义存入历史记录时代表‘戳一戳’动作的文本内容。",
+    "hint": "自定义戳一戳提示内容",
+    "description": "自定义戳一戳提示内容",
     "type": "string",
     "default": "[戳了戳你]"
   }
@@ -100,60 +100,12 @@
     "description": "被戳提示词1",
     "type": "string",
     "hint": "当被戳时，用于生成回复的LLM提示词",
-    "default": "有人戳了戳你，请你回复一句俏皮的话。"
-  },
-  "poke_prompt_2": {
-    "description": "被戳提示词2",
-    "type": "string",
-    "hint": "当被戳时，用于生成回复的LLM提示词",
-    "default": "你被人戳了一下，请给出你的反应。"
-  },
-  "poke_prompt_3": {
-    "description": "被戳提示词3",
-    "type": "string",
-    "hint": "当被戳时，用于生成回复的LLM提示词",
-    "default": "你被戳了戳，请表达出一些惊讶。"
-  },
-  "poke_prompt_4": {
-    "description": "被戳提示词4",
-    "type": "string",
-    "hint": "当被戳时，用于生成回复的LLM提示词",
-    "default": "有人在玩弄你，请表达出可爱的不满。"
-  },
-  "poke_prompt_5": {
-    "description": "被戳提示词5",
-    "type": "string",
-    "hint": "当被戳时，用于生成回复的LLM提示词",
-    "default": "你被戳了戳，请表达出害羞的样子。"
-  },
-  "poke_prompt_6": {
-    "description": "被戳提示词6",
-    "type": "string",
-    "hint": "当被戳时，用于生成回复的LLM提示词",
-    "default": "有人戳了你，请表达出傲娇的反应。"
-  },
-  "poke_prompt_7": {
-    "description": "被戳提示词7",
-    "type": "string",
-    "hint": "当被戳时，用于生成回复的LLM提示词",
-    "default": "被人戳了戳，请给出一个有趣的回应。"
-  },
-  "poke_prompt_8": {
-    "description": "被戳提示词8",
-    "type": "string",
-    "hint": "当被戳时，用于生成回复的LLM提示词",
-    "default": "你被人戳了戳，请用你的个性化方式回应。"
+    "default": "有人戳了戳你，请你回复一句恰当的话。"
   },
   "poke_back_prompt_A": {
     "description": "反戳提示词A",
     "type": "string",
     "hint": "当决定反戳时，用于生成回复的LLM提示词",
-    "default": "你决定戳回对方，请说一句调皮的话。"
-  },
-  "poke_back_prompt_B": {
-    "description": "反戳提示词B",
-    "type": "string",
-    "hint": "当决定反戳时，用于生成回复的LLM提示词",
-    "default": "你要反击戳回对方，请表达出你的小得意。"
+    "default": "你决定戳回对方，请说一句恰当的话。"
   }
 }
