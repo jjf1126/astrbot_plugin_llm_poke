@@ -95,7 +95,7 @@
     "description": "自定义戳一戳提示内容",
     "type": "string",
     "default": "[戳了戳你]"
-  }
+  },
   "poke_prompt_1": {
     "description": "被戳提示词1",
     "type": "string",
