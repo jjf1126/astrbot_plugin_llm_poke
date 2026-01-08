@@ -5,6 +5,7 @@ from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import (
     AiocqhttpMessageEvent,
 )
+from astrbot.core.agent.message import AssistantMessageSegment, TextPart, UserMessageSegment
 import random
 import asyncio
 import time
@@ -158,10 +159,32 @@ class LLMPokePlugin(Star):
             response = await self.get_llm_respond(event, poke_prompt)
             if response:
                 yield event.plain_result(response)
+                # 2. 手动将本次交互存入上下文数据库
+                    try:
+                        # 构造用户侧的消息模拟（因为戳一戳没有文本，我们手动标注）
+                        user_msg = UserMessageSegment(content=[TextPart(text="[戳了戳机器人]")])
+                        # 构造机器人侧的回复内容
+                        assistant_msg = AssistantMessageSegment(content=[TextPart(text=response)])
+        
+                        # 获取当前会话 ID
+                        umo = event.unified_msg_origin
+                        curr_cid = await self.context.conversation_manager.get_curr_conversation_id(umo)
+                        
+                        if curr_cid:
+                            # 执行存档操作
+                            await self.context.conversation_manager.add_message_pair(
+                                cid=curr_cid,
+                                user_message=user_msg,
+                                assistant_message=assistant_msg
+                            )
+                            # logger.info("戳一戳对话已成功存入上下文")
+                    except Exception as e:
+                        logger.error(f"保存戳一戳上下文失败: {e}")
             else:
                 # LLM调用失败，使用普通回复
-                response = random.choice(self.normal_replies)
-                yield event.plain_result(response)
+                logger.info(f"LLM调用回复失败。")
+                #response = random.choice(self.normal_replies)
+                #yield event.plain_result(response)
             
             # 根据概率决定是否反戳
             action_rand = random.random()
