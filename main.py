@@ -49,7 +49,7 @@ class LLMPokePlugin(Star):
         # 反戳次数配置
         self.poke_back_times = config.get("poke_back_times", 1)
         self.super_poke_times = config.get("super_poke_times", 5)
-        self.poke_history = config.get("poke_history_name", "[戳了戳机器人]")
+        self.poke_history = config.get("poke_history", "[戳了戳你]")
         # 预设回复
         self.normal_replies = config.get("normal_replies", [
             "没有察觉到你的戳戳呢~",
@@ -61,18 +61,10 @@ class LLMPokePlugin(Star):
         # 提示词配置
         self.poke_prompts = {
             "1": config.get("poke_prompt_1", "有人戳了戳你，请你回复一句俏皮的话。"),
-            "2": config.get("poke_prompt_2", "你被人戳了一下，请给出你的反应。"),
-            "3": config.get("poke_prompt_3", "你被戳了戳，请表达出一些惊讶。"),
-            "4": config.get("poke_prompt_4", "有人在玩弄你，请表达出可爱的不满。"),
-            "5": config.get("poke_prompt_5", "你被戳了戳，请表达出害羞的样子。"),
-            "6": config.get("poke_prompt_6", "有人戳了你，请表达出傲娇的反应。"),
-            "7": config.get("poke_prompt_7", "被人戳了戳，请给出一个有趣的回应。"),
-            "8": config.get("poke_prompt_8", "你被人戳了戳，请用你的个性化方式回应。"),
         }
         
         self.poke_back_prompts = {
             "A": config.get("poke_back_prompt_A", "你决定戳回对方，请说一句调皮的话。"),
-            "B": config.get("poke_back_prompt_B", "你要反击戳回对方，请表达出你的小得意。"),
         }
         
         logger.info("LLM戳一戳插件(v1.4)已初始化完成！")
@@ -271,10 +263,11 @@ class LLMPokePlugin(Star):
             # 如果上面的逻辑没有找到人格提示词，使用提供商的当前人格作为备选
             if not personality_prompt and hasattr(provider, 'curr_personality') and provider.curr_personality:
                 personality_prompt = provider.curr_personality.get("prompt", "")
-            
+
+            combined_prompt = f"{self.poke_history} {prompt_template}"
             # 格式化提示词，加入用户名
-            format_prompt = prompt_template.format(username=event.get_sender_name())
-            
+            format_prompt = combined_prompt.format(username=event.get_sender_name())
+
             # 调用LLM
             llm_response = await provider.text_chat(
                 prompt=format_prompt,
