@@ -160,26 +160,26 @@ class LLMPokePlugin(Star):
             if response:
                 yield event.plain_result(response)
                 # 2. 手动将本次交互存入上下文数据库
-                    try:
-                        # 构造用户侧的消息模拟（因为戳一戳没有文本，我们手动标注）
-                        user_msg = UserMessageSegment(content=[TextPart(text="[戳了戳机器人]")])
-                        # 构造机器人侧的回复内容
-                        assistant_msg = AssistantMessageSegment(content=[TextPart(text=response)])
+                try:
+                    # 构造用户侧的消息模拟（因为戳一戳没有文本，我们手动标注）
+                    user_msg = UserMessageSegment(content=[TextPart(text="[戳了戳机器人]")])
+                    # 构造机器人侧的回复内容
+                    assistant_msg = AssistantMessageSegment(content=[TextPart(text=response)])
         
-                        # 获取当前会话 ID
-                        umo = event.unified_msg_origin
-                        curr_cid = await self.context.conversation_manager.get_curr_conversation_id(umo)
+                    # 获取当前会话 ID
+                    umo = event.unified_msg_origin
+                    curr_cid = await self.context.conversation_manager.get_curr_conversation_id(umo)
                         
-                        if curr_cid:
-                            # 执行存档操作
-                            await self.context.conversation_manager.add_message_pair(
-                                cid=curr_cid,
-                                user_message=user_msg,
-                                assistant_message=assistant_msg
-                            )
-                            # logger.info("戳一戳对话已成功存入上下文")
-                    except Exception as e:
-                        logger.error(f"保存戳一戳上下文失败: {e}")
+                    if curr_cid:
+                        # 执行存档操作
+                        await self.context.conversation_manager.add_message_pair(
+                            cid=curr_cid,
+                            user_message=user_msg,
+                            assistant_message=assistant_msg
+                        )
+                        # logger.info("戳一戳对话已成功存入上下文")
+                except Exception as e:
+                    logger.error(f"保存戳一戳上下文失败: {e}")
             else:
                 # LLM调用失败，使用普通回复
                 logger.info(f"LLM调用回复失败。")
