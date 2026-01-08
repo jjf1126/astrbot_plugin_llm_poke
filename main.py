@@ -49,7 +49,7 @@ class LLMPokePlugin(Star):
         # 反戳次数配置
         self.poke_back_times = config.get("poke_back_times", 1)
         self.super_poke_times = config.get("super_poke_times", 5)
-        
+        self.poke_history = config.get("poke_history_name", "[戳了戳机器人]")
         # 预设回复
         self.normal_replies = config.get("normal_replies", [
             "没有察觉到你的戳戳呢~",
@@ -162,7 +162,7 @@ class LLMPokePlugin(Star):
                 # 2. 手动将本次交互存入上下文数据库
                 try:
                     # 构造用户侧的消息模拟（因为戳一戳没有文本，我们手动标注）
-                    user_msg = UserMessageSegment(content=[TextPart(text="[戳了戳机器人]")])
+                    user_msg = UserMessageSegment(content=[TextPart(text=self.poke_history)])
                     # 构造机器人侧的回复内容
                     assistant_msg = AssistantMessageSegment(content=[TextPart(text=response)])
         
