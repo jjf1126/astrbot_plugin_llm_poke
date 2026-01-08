@@ -90,6 +90,12 @@
       "刚才没注意到呢，下次戳重一点~"
     ]
   },
+  "poke_history": {
+    "hint": "上下文中的戳一戳占位符",
+    "description": "自定义存入历史记录时代表‘戳一戳’动作的文本内容。",
+    "type": "string",
+    "default": "[戳了戳你]"
+  }
   "poke_prompt_1": {
     "description": "被戳提示词1",
     "type": "string",
