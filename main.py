@@ -97,13 +97,11 @@ class LLMPokePlugin(Star):
         if str(sender_id) in self.blacklisted_users:
             logger.info(f"用户 {sender_id} 在黑名单中，忽略戳一戳。")
             return
-        # -----------------------------
 
         # --- v1.4 Update: 作用域开关检查 ---
         if group_id:
             # 是群聊消息
             if not self.enable_in_groups:
-                # logger.debug("群聊戳一戳已禁用") 
                 return
             
             # 原有的群白名单逻辑
@@ -112,9 +110,7 @@ class LLMPokePlugin(Star):
         else:
             # 是私聊消息
             if not self.enable_in_private:
-                # logger.debug("私聊戳一戳已禁用")
                 return
-        # -----------------------------
             
         # 检查是否是用户戳机器人
         if not bot_id or not sender_id or not target_id or str(target_id) != str(bot_id):
@@ -123,90 +119,72 @@ class LLMPokePlugin(Star):
         # 根据总概率决定是否响应
         if random.random() > self.trigger_probability:
             logger.info(f"戳一戳事件未达到触发概率({self.trigger_probability})，本次不响应。")
-            return  # 未达到概率，不执行任何操作
+            return
             
-        # 记录戳一戳时间戳
+        # 记录戳一戳时间戳并清理过期记录
         now = time.time()
         if sender_id not in self.user_poke_timestamps:
             self.user_poke_timestamps[sender_id] = []
         self.user_poke_timestamps[sender_id].append(now)
-        
-        # 清理3分钟前的记录
         three_minutes_ago = now - 3 * 60
         self.user_poke_timestamps[sender_id] = [
             t for t in self.user_poke_timestamps[sender_id] if t > three_minutes_ago
         ]
+
+        # --- 核心逻辑修复：先判定动作类型，再生成回复 ---
+        action_rand = random.random()
+        is_super_poke = action_rand < self.super_poke_probability
+        is_normal_poke_back = not is_super_poke and action_rand < (self.super_poke_probability + self.poke_back_probability)
         
-        # 根据概率决定是否使用普通回复还是LLM回复
-        if random.random() < self.normal_reply_probability:
-            # 使用普通回复
-            response = random.choice(self.normal_replies)
-            yield event.plain_result(response)
+        # 确定本次使用的提示词模板和物理反戳次数
+        if is_super_poke or is_normal_poke_back:
+            # 准备反戳：使用反戳提示词
+            poke_prompt_key = random.choice(list(self.poke_back_prompts.keys()))
+            current_prompt = self.poke_back_prompts[poke_prompt_key]
+            do_physical_poke = True
+            poke_times = self.super_poke_times if is_super_poke else self.poke_back_times
         else:
-            # 使用LLM回复
+            # 普通被戳回复：使用被戳提示词
             poke_prompt_key = random.choice(list(self.poke_prompts.keys()))
-            poke_prompt = self.poke_prompts[poke_prompt_key]
+            current_prompt = self.poke_prompts[poke_prompt_key]
+            do_physical_poke = False
+
+        # 生成回复内容（区分预设文本和LLM）
+        response = None
+        is_llm_reply = False
+        if random.random() < self.normal_reply_probability:
+            response = random.choice(self.normal_replies)
+        else:
+            response = await self.get_llm_respond(event, current_prompt)
+            is_llm_reply = True
             
-            # 调用LLM生成回复
-            response = await self.get_llm_respond(event, poke_prompt)
-            if response:
-                yield event.plain_result(response)
-                # 2. 手动将本次交互存入上下文数据库
-                try:
-                    # 构造用户侧的消息模拟（因为戳一戳没有文本，我们手动标注）
-                    user_msg = UserMessageSegment(content=[TextPart(text=self.poke_history)])
-                    # 构造机器人侧的回复内容
-                    assistant_msg = AssistantMessageSegment(content=[TextPart(text=response)])
-        
-                    # 获取当前会话 ID
-                    umo = event.unified_msg_origin
-                    curr_cid = await self.context.conversation_manager.get_curr_conversation_id(umo)
-                        
-                    if curr_cid:
-                        # 执行存档操作
-                        await self.context.conversation_manager.add_message_pair(
-                            cid=curr_cid,
-                            user_message=user_msg,
-                            assistant_message=assistant_msg
-                        )
-                        # logger.info("戳一戳对话已成功存入上下文")
-                except Exception as e:
-                    logger.error(f"保存戳一戳上下文失败: {e}")
-            else:
-                # LLM调用失败，使用普通回复
-                logger.info(f"LLM调用回复失败。")
-                #response = random.choice(self.normal_replies)
-                #yield event.plain_result(response)
+        if not response:
+            return
+
+        # 发送回复
+        yield event.plain_result(response)
+
+        # 如果是 LLM 生成的回复，统一存入上下文
+        if is_llm_reply:
+            try:
+                user_msg = UserMessageSegment(content=[TextPart(text=self.poke_history)])
+                assistant_msg = AssistantMessageSegment(content=[TextPart(text=response)])
+                umo = event.unified_msg_origin
+                curr_cid = await self.context.conversation_manager.get_curr_conversation_id(umo)
+                if curr_cid:
+                    await self.context.conversation_manager.add_message_pair(
+                        cid=curr_cid,
+                        user_message=user_msg,
+                        assistant_message=assistant_msg
+                    )
+            except Exception as e:
+                logger.error(f"保存戳一戳上下文失败: {e}")
+
+        # 如果命中反戳概率，执行物理反戳动作
+        if do_physical_poke:
+            await self.do_poke_back(event, sender_id, group_id, poke_times)
             
-            # 根据概率决定是否反戳
-            action_rand = random.random()
-            if action_rand < self.poke_back_probability:
-                # 普通反戳
-                poke_back_prompt_key = random.choice(list(self.poke_back_prompts.keys()))
-                poke_back_prompt = self.poke_back_prompts[poke_back_prompt_key]
-                
-                # 调用LLM生成反戳回复
-                poke_back_response = await self.get_llm_respond(event, poke_back_prompt)
-                if poke_back_response:
-                    yield event.plain_result(poke_back_response)
-                
-                # 执行反戳
-                await self.do_poke_back(event, sender_id, group_id, self.poke_back_times)
-                
-            elif action_rand < self.poke_back_probability + self.super_poke_probability:
-                # 超级反戳
-                poke_back_prompt_key = random.choice(list(self.poke_back_prompts.keys()))
-                poke_back_prompt = self.poke_back_prompts[poke_back_prompt_key]
-                
-                # 调用LLM生成超级反戳回复
-                poke_back_response = await self.get_llm_respond(event, poke_back_prompt)
-                if poke_back_response:
-                    yield event.plain_result(poke_back_response)
-                
-                # 执行超级反戳
-                await self.do_poke_back(event, sender_id, group_id, self.super_poke_times)
-            
-        # 阻止默认的LLM请求，但允许事件继续传播给其他插件
+        # 阻止默认的LLM请求
         event.should_call_llm(False)
         
     async def get_llm_respond(self, event: AstrMessageEvent, prompt_template: str) -> str:
